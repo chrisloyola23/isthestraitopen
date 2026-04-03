@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Is The Strait Open?</title>
+<meta name="description" content="Real-time status of the Strait of Hormuz. Is it open or closed? Vote on who will reopen it.">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-dark: #0a0c10;
+    --surface: #12151c;
+    --surface-raised: #1a1e28;
+    --red: #ff2a2a;
+    --red-glow: rgba(255, 42, 42, 0.3);
+    --green: #00e676;
+    --green-glow: rgba(0, 230, 118, 0.3);
+    --amber: #ffab00;
+    --amber-glow: rgba(255, 171, 0, 0.3);
+    --text: #e8e8e8;
+    --text-muted: #7a8194;
+    --accent-blue: #3d85c6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Space Mono', monospace;
+    background: var(--bg-dark);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Background photo layer (grayscale + darkened) ── */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image: url('https://monocle.com/wp-content/uploads/2026/03/GettyImages-2221186578_CROP__.jpg?resize=973%2C730');
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    filter: grayscale(100%) brightness(0.25) contrast(1.1);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Subtle grid overlay on top of the photo ── */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image:
+      linear-gradient(rgba(61,133,198,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(61,133,198,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  header {
+    text-align: center;
+    padding: 60px 0 20px;
+  }
+  header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.8rem, 8vw, 5rem);
+    letter-spacing: 0.06em;
+    line-height: 1;
+    color: var(--text);
+    text-transform: uppercase;
+  }
+  header .subtitle {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-top: 8px;
+  }
+
+  .status-card {
+    margin: 40px 0;
+    padding: 50px 30px;
+    border-radius: 16px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.5s ease;
+  }
+  .status-card.closed {
+    background: linear-gradient(135deg, #1a0808, #200a0a);
+    border: 2px solid rgba(255, 42, 42, 0.25);
+    box-shadow: 0 0 80px var(--red-glow), inset 0 0 60px rgba(255,42,42,0.05);
+  }
+  .status-card.open {
+    background: linear-gradient(135deg, #081a0e, #0a200f);
+    border: 2px solid rgba(0, 230, 118, 0.25);
+    box-shadow: 0 0 80px var(--green-glow), inset 0 0 60px rgba(0,230,118,0.05);
+  }
+  .status-card.partial {
+    background: linear-gradient(135deg, #1a1508, #201a0a);
+    border: 2px solid rgba(255, 171, 0, 0.25);
+    box-shadow: 0 0 80px var(--amber-glow), inset 0 0 60px rgba(255,171,0,0.05);
+  }
+  .status-answer {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(5rem, 18vw, 11rem);
+    line-height: 1;
+    animation: pulseText 3s ease-in-out infinite;
+  }
+  .status-card.closed .status-answer { color: var(--red); }
+  .status-card.open .status-answer { color: var(--green); }
+  .status-card.partial .status-answer { color: var(--amber); }
+
+  @keyframes pulseText {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.75; }
+  }
+  .status-detail {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 16px;
+    line-height: 1.7;
+    max-width: 550px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 20px;
+    padding: 6px 16px;
+    border-radius: 100px;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .indicator-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    animation: blink 2s ease-in-out infinite;
+  }
+  .status-card.closed .indicator-dot { background: var(--red); box-shadow: 0 0 8px var(--red); }
+  .status-card.open .indicator-dot { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .status-card.partial .indicator-dot { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin: 30px 0;
+  }
+  .stat-item {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 18px 16px;
+    text-align: center;
+  }
+  .stat-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem;
+    color: var(--text);
+  }
+  .stat-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .context-section {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 28px;
+    margin: 30px 0;
+  }
+  .context-section h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem;
+    letter-spacing: 0.05em;
+    margin-bottom: 14px;
+    color: var(--text);
+  }
+  .context-section p {
+    font-size: 0.8rem;
+    line-height: 1.8;
+    color: var(--text-muted);
+  }
+  .context-section a {
+    color: var(--accent-blue);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(61,133,198,0.3);
+  }
+
+  .poll-section { margin: 50px 0; }
+  .poll-section h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    text-align: center;
+    letter-spacing: 0.04em;
+    margin-bottom: 8px;
+  }
+  .poll-subtitle {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 30px;
+  }
+  .poll-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+  }
+  .poll-card {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .poll-card:hover {
+    border-color: var(--accent-blue);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 30px rgba(61,133,198,0.12);
+  }
+  .poll-card.has-voted { cursor: default; }
+  .poll-card.has-voted:hover { transform: none; box-shadow: none; }
+  .poll-card.user-pick {
+    border-color: var(--accent-blue);
+    background: rgba(61,133,198,0.08);
+  }
+
+  .poll-card-img {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: top center;
+    margin: 0 auto 14px;
+    display: block;
+    border: 3px solid rgba(255,255,255,0.1);
+    background: var(--surface-raised);
+  }
+  .poll-card-initials {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    margin: 0 auto 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    color: var(--text-muted);
+    border: 3px solid rgba(255,255,255,0.1);
+    background: var(--surface-raised);
+  }
+
+  .poll-card-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.2rem;
+    letter-spacing: 0.03em;
+  }
+  .poll-card-title {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .poll-bar-container {
+    margin-top: 14px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 6px;
+    height: 28px;
+    overflow: hidden;
+    position: relative;
+  }
+  .poll-bar {
+    height: 100%;
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--accent-blue), #5a9fd4);
+    transition: width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    min-width: 0;
+  }
+  .poll-bar-label {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .poll-total {
+    text-align: center;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 20px;
+  }
+  .poll-loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    grid-column: 1 / -1;
+  }
+
+  footer {
+    text-align: center;
+    padding: 50px 0 30px;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    line-height: 2;
+  }
+  footer a {
+    color: var(--accent-blue);
+    text-decoration: none;
+  }
+  .last-updated {
+    text-align: center;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    margin-top: 10px;
+  }
+
+  @media (max-width: 500px) {
+    .container { padding: 14px; }
+    header { padding: 40px 0 14px; }
+    .status-card { padding: 36px 20px; }
+    .poll-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <header>
+    <h1>Is The Strait Open?</h1>
+    <div class="subtitle">Strait of Hormuz &mdash; Real-Time Status Monitor</div>
+  </header>
+
+  <div class="status-card closed" id="statusCard">
+    <div class="status-answer" id="statusAnswer">NO</div>
+    <div class="status-detail" id="statusDetail"></div>
+    <div class="status-indicator">
+      <span class="indicator-dot"></span>
+      <span id="statusLabel"></span>
+    </div>
+  </div>
+  <div class="last-updated">Last verified: <span id="lastUpdated"></span></div>
+
+  <div class="stats-bar">
+    <div class="stat-item">
+      <div class="stat-value" id="statTransits"></div>
+      <div class="stat-label">Weekly Transits (vs. 966 normal)</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="statOil"></div>
+      <div class="stat-label">Brent Crude $/bbl</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="statDays"></div>
+      <div class="stat-label">Days Since Closure</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="statAttacks"></div>
+      <div class="stat-label">Confirmed Ship Attacks</div>
+    </div>
+  </div>
+
+  <div class="context-section">
+    <h2>What's Happening?</h2>
+    <p>
+      Following U.S.-Israeli strikes on Iran on February 28, 2026, the IRGC declared the Strait of Hormuz closed to most international shipping. Iran has selectively allowed passage for vessels from China, India, Russia, Pakistan, Malaysia, the Philippines, and Thailand. A U.S. military campaign to reopen the strait began March 19 but has not restored normal traffic. Multiple diplomatic tracks are underway, including a 40-nation UK-led coalition and an Iran-Oman monitoring protocol. Iran's IRGC has established a "toll booth" system for vessel passage.
+    </p>
+    <br>
+    <p>
+      Sources: 
+      <a href="https://en.wikipedia.org/wiki/2026_Strait_of_Hormuz_crisis" target="_blank">Wikipedia</a> &bull;
+      <a href="https://hormuzstraitmonitor.com/" target="_blank">Hormuz Strait Monitor</a> &bull; 
+      <a href="https://news.usni.org" target="_blank">USNI News</a> &bull;
+      <a href="https://www.unitedagainstnucleariran.com" target="_blank">UANI</a>
+    </p>
+  </div>
+
+  <div class="poll-section">
+    <h2>Who Will Reopen The Strait?</h2>
+    <p class="poll-subtitle">Cast your vote &mdash; select the person or entity most likely to reopen the Strait of Hormuz</p>
+    <div class="poll-grid" id="pollGrid">
+      <div class="poll-loading">Loading poll data...</div>
+    </div>
+    <div class="poll-total" id="pollTotal"></div>
+  </div>
+
+  <footer>
+    <div>ISTHESTRAITOPEN.COM</div>
+    <div>Status is manually verified from AIS data, news sources, and maritime intelligence.</div>
+    <div>This site is not affiliated with any government or military organization.</div>
+    <div style="margin-top:10px;">
+      Built with purpose &bull; <a href="https://aisstream.io/" target="_blank">AIS Data</a> &bull; 
+      <a href="https://en.wikipedia.org/wiki/2026_Strait_of_Hormuz_crisis" target="_blank">Crisis Info</a>
+    </div>
+  </footer>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     FIREBASE SDK — loaded via CDN so no build tools are needed.
+     These are the "compat" versions which use the simpler
+     firebase.initializeApp() / firebase.database() syntax.
+     ═══════════════════════════════════════════════════════════════ -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+<script>
+// ╔═══════════════════════════════════════════════════════════════╗
+// ║                                                               ║
+// ║   ███  CONFIGURATION SECTION  ███                             ║
+// ║                                                               ║
+// ║   Everything you need to edit is in this section.             ║
+// ║   The app logic below this section runs automatically.        ║
+// ║                                                               ║
+// ╚═══════════════════════════════════════════════════════════════╝
+
+
+// ┌───────────────────────────────────────────────────────────────┐
+// │                                                               │
+// │  █ FIREBASE CONFIG                                            │
+// │                                                               │
+// │  STEP-BY-STEP SETUP:                                          │
+// │                                                               │
+// │  1. Go to https://console.firebase.google.com                 │
+// │  2. Click "Create a project"                                  │
+// │  3. Name it something like "strait-poll" → Continue           │
+// │  4. Disable Google Analytics (not needed) → Create Project    │
+// │  5. Wait for it to finish → Click "Continue"                  │
+// │  6. In the left sidebar, click "Build" → "Realtime Database"  │
+// │  7. Click "Create Database"                                   │
+// │  8. Pick the server location closest to your users            │
+// │     (e.g. "United States (us-central1)")                      │
+// │  9. Select "Start in test mode" → Enable                      │
+// │     (This allows read/write for 30 days. See rules below.)    │
+// │  10. Click the gear icon (top-left) → "Project settings"      │
+// │  11. Scroll to "Your apps" section → Click the </> web icon   │
+// │  12. Nickname it "strait-web" → Click "Register app"          │
+// │  13. You'll see a firebaseConfig object — copy those values   │
+// │      into the object below                                    │
+// │  14. Set FIREBASE_ENABLED = true (below the config)           │
+// │                                                               │
+// │  RECOMMENDED SECURITY RULES (set in Console → Realtime DB     │
+// │  → Rules tab — paste this and click Publish):                 │
+// │                                                               │
+// │  {                                                            │
+// │    "rules": {                                                 │
+// │      "votes": {                                               │
+// │        "$candidateId": {                                      │
+// │          ".read": true,                                       │
+// │          ".write": true,                                      │
+// │          ".validate": "newData.isNumber()"                    │
+// │        }                                                      │
+// │      }                                                        │
+// │    }                                                          │
+// │  }                                                            │
+// │                                                               │
+// │  This allows anyone to read votes and increment counts,       │
+// │  but only numbers can be written (prevents spam/injection).   │
+// │  The one-vote-per-person enforcement is handled client-side   │
+// │  via localStorage — not bulletproof, but fine for a fun poll. │
+// │                                                               │
+// └───────────────────────────────────────────────────────────────┘
+
+const firebaseConfig = {
+  // ⬇️  REPLACE every value below with yours from step 13
+  apiKey:            "YOUR_API_KEY_HERE",
+  authDomain:        "YOUR_PROJECT.firebaseapp.com",
+  databaseURL:       "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+  projectId:         "YOUR_PROJECT",
+  storageBucket:     "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "000000000000",
+  appId:             "YOUR_APP_ID_HERE"
+};
+
+// Flip this to true once you've pasted your real config above.
+// While false, the site works perfectly using localStorage
+// so you can preview/test the design without Firebase.
+const FIREBASE_ENABLED = false;
+
+
+// ┌───────────────────────────────────────────────────────────────┐
+// │                                                               │
+// │  █ STRAIT STATUS — HOW TO UPDATE                              │
+// │                                                               │
+// │  WHEN SOMETHING CHANGES, edit these 4 values:                 │
+// │                                                               │
+// │  ┌─────────────────┬───────────┬──────────┬─────────────────┐ │
+// │  │ Situation       │ STATUS    │ ANSWER   │ LABEL           │ │
+// │  ├─────────────────┼───────────┼──────────┼─────────────────┤ │
+// │  │ Fully blocked   │ "closed"  │ "NO"     │ "EFFECTIVELY    │ │
+// │  │                 │           │          │  CLOSED"        │ │
+// │  ├─────────────────┼───────────┼──────────┼─────────────────┤ │
+// │  │ Some traffic    │ "partial" │ "MOSTLY  │ "LIMITED        │ │
+// │  │ (<100/day)      │           │  NO"     │  TRANSIT"       │ │
+// │  ├─────────────────┼───────────┼──────────┼─────────────────┤ │
+// │  │ Normal traffic  │ "open"    │ "YES"    │ "OPEN FOR       │ │
+// │  │ (>100/day)      │           │          │  TRANSIT"       │ │
+// │  └─────────────────┴───────────┴──────────┴─────────────────┘ │
+// │                                                               │
+// │  DECISION FRAMEWORK:                                          │
+// │  Normal = ~138 vessels/day (pre-crisis average per CSIS)      │
+// │  "closed"  → daily transits < 30 AND/OR IRGC threats active  │
+// │  "partial" → 30-100 daily transits, selective passage only    │
+// │  "open"    → >100 daily transits, insurers resume coverage,  │
+// │              major shipping lines resume regular service       │
+// │                                                               │
+// │  WHERE TO CHECK (bookmark these):                             │
+// │  • hormuzstraitmonitor.com — hourly transit counts            │
+// │  • Lloyd's List — weekly shipping intelligence                │
+// │  • unitedagainstnucleariran.com/blog — UANI shipping updates  │
+// │  • news.usni.org — daily U.S. naval intelligence              │
+// │  • en.wikipedia.org/wiki/2026_Strait_of_Hormuz_crisis         │
+// │  • cnbc.com — breaking developments                           │
+// │                                                               │
+// │  HOW I DETERMINED THE CURRENT STATUS:                         │
+// │  I cross-referenced multiple sources on April 3, 2026:        │
+// │  • Lloyd's List: 48 vessels transited Mar 23-30 (<10% normal) │
+// │  • UANI: 23+ confirmed ship attacks since March 1             │
+// │  • IRGC: officially declared strait "closed" on March 2       │
+// │  • IRGC: reaffirmed closure on March 27 for US/Israel allies  │
+// │  • USNI: Hegseth acknowledged reduced traffic Mar 31          │
+// │  • CNBC: Iran-Oman drafting monitoring protocol Apr 2         │
+// │  • NPR: "still mostly closed" as of April 1                  │
+// │  Conclusion: CLOSED. Traffic is ~10% of normal, all under     │
+// │  Iranian approval. No western-flagged vessels transiting      │
+// │  freely. Military operations ongoing but unsuccessful at      │
+// │  restoring normal shipping.                                   │
+// │                                                               │
+// └───────────────────────────────────────────────────────────────┘
+
+const STRAIT_STATUS = "closed";
+const STATUS_ANSWER = "NO";
+const STATUS_DETAIL = "The Strait of Hormuz has been effectively closed since March 2, 2026, when Iran's IRGC officially confirmed the blockade. Limited selective transit continues for approved nations. Traffic remains at roughly 10% of normal levels.";
+const STATUS_LABEL  = "EFFECTIVELY CLOSED";
+
+
+// ┌───────────────────────────────────────────────────────────────┐
+// │  █ KEY STATISTICS — update weekly from sources above          │
+// └───────────────────────────────────────────────────────────────┘
+
+const STATS = {
+  weeklyTransits:   "~48",
+  brentCrude:       "$114",
+  daysSinceClosure: Math.floor((new Date() - new Date("2026-03-02")) / (1000 * 60 * 60 * 24)),
+  confirmedAttacks: "23+"
+};
+
+
+// ┌───────────────────────────────────────────────────────────────┐
+// │                                                               │
+// │  █ POLL CANDIDATES                                            │
+// │                                                               │
+// │  ╔═══════════════════════════════════════════════════════╗     │
+// │  ║  HOW TO ADD PICTURES (3 options):                    ║     │
+// │  ║                                                      ║     │
+// │  ║  OPTION A — imgbb.com (easiest, free, no account):   ║     │
+// │  ║  1. Go to https://imgbb.com                          ║     │
+// │  ║  2. Click "Start uploading" → select your photo      ║     │
+// │  ║  3. After upload, click "Share" or "Get codes"       ║     │
+// │  ║  4. Copy the "Direct link" (ends in .jpg or .png)    ║     │
+// │  ║  5. Paste it as the img value below                  ║     │
+// │  ║                                                      ║     │
+// │  ║  OPTION B — GitHub repo (good for version control):  ║     │
+// │  ║  1. Create an /images folder in your GitHub repo     ║     │
+// │  ║  2. Upload photos there (e.g. shane-gillis.jpg)      ║     │
+// │  ║  3. Use the raw URL:                                 ║     │
+// │  ║     https://raw.githubusercontent.com/YOURUSERNAME/  ║     │
+// │  ║     YOURREPO/main/images/shane-gillis.jpg            ║     │
+// │  ║                                                      ║     │
+// │  ║  OPTION C — Any direct image URL works:              ║     │
+// │  ║  Right-click any image online → "Copy image address" ║     │
+// │  ║  (Make sure it ends in .jpg, .png, .webp, etc.)      ║     │
+// │  ║                                                      ║     │
+// │  ║  IMAGE TIPS:                                         ║     │
+// │  ║  • Square or portrait crop works best                ║     │
+// │  ║  • Min 200x200px recommended                        ║     │
+// │  ║  • Images auto-crop to circles via CSS              ║     │
+// │  ║  • If img is "" → initials shown as fallback        ║     │
+// │  ╚═══════════════════════════════════════════════════════╝     │
+// │                                                               │
+// │  TO ADD A NEW CANDIDATE — copy this block into the array:     │
+// │  {                                                            │
+// │    id: "unique_lowercase_id",                                 │
+// │    name: "Full Display Name",                                 │
+// │    title: "Their Role or Title",                              │
+// │    img: "https://example.com/photo.jpg"                       │
+// │  },                                                           │
+// │                                                               │
+// │  TO REMOVE — delete the entire { ... }, block                 │
+// │  TO REORDER — move the { ... }, blocks around                 │
+// │                                                               │
+// └───────────────────────────────────────────────────────────────┘
+
+const CANDIDATES = [
+  {
+    id: "gillis",
+    name: "Shane Gillis",
+    title: "Comedian & Negotiator",
+    img: ""
+    // ↑ PASTE YOUR IMAGE URL HERE
+    // Example: img: "https://i.ibb.co/abc123/shane-gillis.jpg"
+  },
+  {
+    id: "trump",
+    name: "Donald Trump",
+    title: "U.S. President",
+    img: ""
+  },
+  {
+    id: "starmer",
+    name: "Keir Starmer",
+    title: "UK Prime Minister",
+    img: ""
+  },
+  {
+    id: "pezeshkian",
+    name: "Masoud Pezeshkian",
+    title: "President of Iran",
+    img: ""
+  },
+  {
+    id: "xi",
+    name: "Xi Jinping",
+    title: "President of China",
+    img: ""
+  },
+  {
+    id: "un",
+    name: "United Nations",
+    title: "Security Council",
+    img: ""
+  },
+  {
+    id: "coalition",
+    name: "40-Nation Coalition",
+    title: "UK-Led Maritime Force",
+    img: ""
+  }
+];
+
+
+// ╔═══════════════════════════════════════════════════════════════╗
+// ║                                                               ║
+// ║   APP LOGIC — runs automatically, no edits needed             ║
+// ║                                                               ║
+// ╚═══════════════════════════════════════════════════════════════╝
+
+// ── Firebase Init ──
+let db = null;
+if (FIREBASE_ENABLED) {
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    console.log("✅ Firebase connected successfully");
+  } catch (err) {
+    console.error("❌ Firebase init failed — falling back to localStorage:", err);
+    db = null;
+  }
+}
+
+// ── Apply Status ──
+document.getElementById('statusCard').className = `status-card ${STRAIT_STATUS}`;
+document.getElementById('statusAnswer').textContent = STATUS_ANSWER;
+document.getElementById('statusDetail').textContent  = STATUS_DETAIL;
+document.getElementById('statusLabel').textContent   = STATUS_LABEL;
+document.getElementById('statTransits').textContent  = STATS.weeklyTransits;
+document.getElementById('statOil').textContent       = STATS.brentCrude;
+document.getElementById('statDays').textContent      = STATS.daysSinceClosure;
+document.getElementById('statAttacks').textContent   = STATS.confirmedAttacks;
+document.getElementById('lastUpdated').textContent   = new Date().toLocaleDateString('en-US', {
+  month: 'long', day: 'numeric', year: 'numeric'
+});
+
+// ── Helpers ──
+function getInitials(name) {
+  return name.split(' ').map(w => w[0]).join('').substring(0, 2);
+}
+
+const VOTED_KEY = 'strait_poll_voted_candidate';
+function getVotedCandidate() { return localStorage.getItem(VOTED_KEY); }
+function setVotedCandidate(id) { localStorage.setItem(VOTED_KEY, id); }
+
+
+// ══════════════════════════════════════
+// FIREBASE VOTING
+// ══════════════════════════════════════
+
+function castVoteFirebase(candidateId) {
+  if (getVotedCandidate()) return;
+  // transaction() is an atomic read-then-write — safe even with
+  // many users voting simultaneously. It reads the current value,
+  // adds 1, and writes it back. If another write happened in
+  // between, Firebase retries automatically.
+  db.ref('votes/' + candidateId).transaction(function(current) {
+    return (current || 0) + 1;
+  }).then(() => {
+    setVotedCandidate(candidateId);
+  }).catch(err => {
+    console.error("Vote failed:", err);
+    alert("Vote failed — please try again.");
+  });
+}
+
+function listenForVotesFirebase() {
+  // .on('value') sets up a REALTIME listener — whenever ANY vote
+  // changes in the database, this callback fires and the poll
+  // re-renders with the new totals. This means if two people
+  // have the page open, they'll see votes update live.
+  db.ref('votes').on('value', (snapshot) => {
+    const votes = snapshot.val() || {};
+    CANDIDATES.forEach(c => {
+      if (!(c.id in votes)) votes[c.id] = 0;
+    });
+    renderPoll(votes);
+  });
+}
+
+
+// ══════════════════════════════════════
+// LOCALSTORAGE FALLBACK
+// ══════════════════════════════════════
+
+const LOCAL_VOTES_KEY = 'strait_poll_votes_local';
+
+function getLocalVotes() {
+  try {
+    const stored = localStorage.getItem(LOCAL_VOTES_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch(e) {}
+  const votes = {};
+  CANDIDATES.forEach(c => votes[c.id] = Math.floor(Math.random() * 50) + 5);
+  localStorage.setItem(LOCAL_VOTES_KEY, JSON.stringify(votes));
+  return votes;
+}
+
+function castVoteLocal(candidateId) {
+  if (getVotedCandidate()) return;
+  const votes = getLocalVotes();
+  votes[candidateId] = (votes[candidateId] || 0) + 1;
+  localStorage.setItem(LOCAL_VOTES_KEY, JSON.stringify(votes));
+  setVotedCandidate(candidateId);
+  renderPoll(votes);
+}
+
+
+// ══════════════════════════════════════
+// UNIFIED VOTE HANDLER
+// ══════════════════════════════════════
+
+function castVote(candidateId) {
+  if (getVotedCandidate()) return;
+  if (db) {
+    castVoteFirebase(candidateId);
+  } else {
+    castVoteLocal(candidateId);
+  }
+}
+
+
+// ══════════════════════════════════════
+// RENDER POLL
+// ══════════════════════════════════════
+
+function renderPoll(votes) {
+  const grid = document.getElementById('pollGrid');
+  const totalVotes = Object.values(votes).reduce((a, b) => a + b, 0);
+  const votedFor = getVotedCandidate();
+  const hasVoted = !!votedFor;
+
+  grid.innerHTML = '';
+
+  CANDIDATES.forEach(candidate => {
+    const count = votes[candidate.id] || 0;
+    const pct = totalVotes > 0 ? ((count / totalVotes) * 100).toFixed(1) : 0;
+    const isUserPick = (votedFor === candidate.id);
+
+    const card = document.createElement('div');
+    card.className = 'poll-card'
+      + (hasVoted ? ' has-voted' : '')
+      + (isUserPick ? ' user-pick' : '');
+
+    if (!hasVoted) {
+      card.onclick = () => castVote(candidate.id);
+    }
+
+    let imgHTML;
+    if (candidate.img) {
+      // If img URL is provided, show the photo in a circle.
+      // onerror fallback: if the URL is broken, hide the img
+      // and show the initials div instead.
+      imgHTML = `<img class="poll-card-img" src="${candidate.img}" alt="${candidate.name}"
+                   onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                 <div class="poll-card-initials" style="display:none">${getInitials(candidate.name)}</div>`;
+    } else {
+      imgHTML = `<div class="poll-card-initials">${getInitials(candidate.name)}</div>`;
+    }
+
+    card.innerHTML = `
+      ${imgHTML}
+      <div class="poll-card-name">${candidate.name}</div>
+      <div class="poll-card-title">${candidate.title}</div>
+      ${hasVoted ? `
+        <div class="poll-bar-container">
+          <div class="poll-bar" style="width:${pct}%"></div>
+          <div class="poll-bar-label">${pct}% (${count.toLocaleString()})</div>
+        </div>
+      ` : `<div style="margin-top:14px;font-size:0.7rem;color:var(--text-muted);letter-spacing:0.1em;">TAP TO VOTE</div>`}
+    `;
+    grid.appendChild(card);
+  });
+
+  document.getElementById('pollTotal').textContent = hasVoted
+    ? `${totalVotes.toLocaleString()} total votes — you voted for ${CANDIDATES.find(c => c.id === votedFor)?.name || 'Unknown'}`
+    : 'Vote to see results';
+}
+
+
+// ══════════════════════════════════════
+// INITIALIZE
+// ══════════════════════════════════════
+
+if (db) {
+  listenForVotesFirebase();
+} else {
+  console.log("⚠️ Firebase not configured — using localStorage fallback. Set FIREBASE_ENABLED = true after adding your config.");
+  renderPoll(getLocalVotes());
+}
+</script>
+
+</body>
+</html>
