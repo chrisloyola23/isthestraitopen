@@ -330,6 +330,116 @@
     grid-column: 1 / -1;
   }
 
+  /* ── AIS LIVE TRACKER SECTION ── */
+  .ais-section {
+    margin: 50px 0;
+  }
+  .ais-section h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    text-align: center;
+    letter-spacing: 0.04em;
+    margin-bottom: 8px;
+  }
+  .ais-subtitle {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+  }
+  .ais-dashboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .ais-stat {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 18px 16px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .ais-stat-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.2rem;
+    color: var(--text);
+    line-height: 1;
+  }
+  .ais-stat-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
+  .ais-stat .live-dot {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    animation: blink 1.5s ease-in-out infinite;
+  }
+  .ais-stat .live-dot.disconnected {
+    background: var(--red);
+    box-shadow: 0 0 6px var(--red);
+  }
+  .ais-feed {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 16px;
+    max-height: 220px;
+    overflow-y: auto;
+    font-size: 0.65rem;
+    line-height: 1.9;
+    color: var(--text-muted);
+    font-family: 'Space Mono', monospace;
+  }
+  .ais-feed::-webkit-scrollbar { width: 4px; }
+  .ais-feed::-webkit-scrollbar-track { background: transparent; }
+  .ais-feed::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+  .ais-feed-entry {
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .ais-feed-entry .vessel-name { color: var(--accent-blue); font-weight: 700; }
+  .ais-feed-entry .vessel-speed { color: var(--text-muted); }
+  .ais-feed-entry .vessel-time { color: rgba(255,255,255,0.25); font-size: 0.6rem; }
+  .ais-connection-status {
+    text-align: center;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    margin-top: 10px;
+    letter-spacing: 0.1em;
+  }
+  .ais-connection-status .status-text.connected { color: var(--green); }
+  .ais-connection-status .status-text.error { color: var(--red); }
+  .ais-rate-bar {
+    margin-top: 12px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 6px;
+    height: 6px;
+    overflow: hidden;
+  }
+  .ais-rate-fill {
+    height: 100%;
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--green), var(--accent-blue));
+    transition: width 1s ease;
+    width: 0%;
+  }
+
   footer {
     text-align: center;
     padding: 50px 0 30px;
@@ -393,6 +503,46 @@
     <div class="stat-item">
       <div class="stat-value" id="statAttacks"></div>
       <div class="stat-label">Confirmed Ship Attacks</div>
+    </div>
+  </div>
+
+  <!-- AIS LIVE VESSEL TRACKER -->
+  <div class="ais-section" id="aisSection">
+    <h2>Live Vessel Tracker</h2>
+    <p class="ais-subtitle">Real-time AIS data from the Strait of Hormuz bounding box (26.0°N–26.8°N, 56.0°E–57.0°E)</p>
+
+    <div class="ais-dashboard">
+      <div class="ais-stat">
+        <span class="live-dot disconnected" id="aisLiveDot"></span>
+        <div class="ais-stat-value" id="aisVesselsNow">—</div>
+        <div class="ais-stat-label">Unique Vessels (Last Hour)</div>
+      </div>
+      <div class="ais-stat">
+        <div class="ais-stat-value" id="aisVessels24h">—</div>
+        <div class="ais-stat-label">Unique Vessels (24h)</div>
+      </div>
+      <div class="ais-stat">
+        <div class="ais-stat-value" id="aisMessages">0</div>
+        <div class="ais-stat-label">AIS Messages Received</div>
+      </div>
+      <div class="ais-stat">
+        <div class="ais-stat-value" id="aisAvgSpeed">—</div>
+        <div class="ais-stat-label">Avg Speed (knots)</div>
+      </div>
+    </div>
+
+    <div class="ais-rate-bar">
+      <div class="ais-rate-fill" id="aisRateFill"></div>
+    </div>
+
+    <div class="ais-feed" id="aisFeed">
+      <div style="text-align:center;padding:20px;color:var(--text-muted);">
+        Waiting for AIS connection...
+      </div>
+    </div>
+
+    <div class="ais-connection-status">
+      <span class="status-text" id="aisConnectionStatus">Disconnected — enter your API key to connect</span>
     </div>
   </div>
 
@@ -580,6 +730,50 @@ const STATS = {
   daysSinceClosure: Math.floor((new Date() - new Date("2026-03-02")) / (1000 * 60 * 60 * 24)),
   confirmedAttacks: "23+"
 };
+
+
+// ┌───────────────────────────────────────────────────────────────┐
+// │                                                               │
+// │  █ AIS STREAM CONFIG (Live Vessel Tracking)                   │
+// │                                                               │
+// │  SETUP:                                                       │
+// │  1. Go to https://aisstream.io and click "Sign Up"            │
+// │  2. Create a free account (email + password)                  │
+// │  3. After login, your API key is shown on the dashboard       │
+// │  4. Paste it below as AIS_API_KEY                             │
+// │  5. Set AIS_ENABLED = true                                    │
+// │                                                               │
+// │  HOW IT WORKS:                                                │
+// │  The WebSocket connects to aisstream.io and subscribes to     │
+// │  PositionReport messages within the Strait of Hormuz          │
+// │  bounding box. It tracks unique vessels by MMSI (each ship    │
+// │  has a unique Maritime Mobile Service Identity number).        │
+// │  The dashboard shows:                                         │
+// │  • Unique vessels in the last 1 hour                          │
+// │  • Unique vessels in the last 24 hours                        │
+// │  • Total AIS messages received since page load                │
+// │  • Average speed of vessels (in knots)                        │
+// │  • A live scrolling feed of vessel sightings                  │
+// │                                                               │
+// │  BOUNDING BOX:                                                │
+// │  The default box covers the narrowest part of the strait:     │
+// │  SW corner: 26.0°N, 56.0°E                                   │
+// │  NE corner: 26.8°N, 57.0°E                                   │
+// │  You can widen this to capture more traffic if needed.        │
+// │                                                               │
+// │  COST: Free. aisstream.io's free tier is sufficient.          │
+// │  The WebSocket stays open as long as the page is open.        │
+// │                                                               │
+// └───────────────────────────────────────────────────────────────┘
+
+const AIS_API_KEY = "YOUR_AISSTREAM_API_KEY_HERE";
+const AIS_ENABLED = false;  // Set to true after adding your key
+
+// Bounding box: [[SW_lat, SW_lon], [NE_lat, NE_lon]]
+const AIS_BOUNDING_BOX = [[26.0, 56.0], [26.8, 57.0]];
+
+// How often to recalculate stats (milliseconds)
+const AIS_STATS_INTERVAL = 10000; // every 10 seconds
 
 
 // ┌───────────────────────────────────────────────────────────────┐
@@ -852,6 +1046,214 @@ function renderPoll(votes) {
 
 
 // ══════════════════════════════════════
+// AIS STREAM — LIVE VESSEL TRACKING
+// ══════════════════════════════════════
+
+// Data stores for vessel tracking
+const aisVessels = new Map();  // MMSI → { name, lat, lon, speed, heading, lastSeen, navStatus }
+let aisTotalMessages = 0;
+let aisSocket = null;
+let aisReconnectTimer = null;
+const AIS_MAX_FEED_ENTRIES = 50;
+const AIS_RECONNECT_DELAY = 5000; // 5 seconds
+
+// Format a timestamp for the feed
+function aisTimeFormat(date) {
+  return date.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+// Navigation status codes → human readable
+function aisNavStatus(code) {
+  const statuses = {
+    0: 'Underway/Engine', 1: 'At Anchor', 2: 'Not Commanding',
+    3: 'Restricted', 4: 'Draft Constrained', 5: 'Moored',
+    6: 'Aground', 7: 'Fishing', 8: 'Underway/Sail',
+    14: 'AIS-SART', 15: 'Undefined'
+  };
+  return statuses[code] || `Status ${code}`;
+}
+
+// Add an entry to the live feed
+function aisFeedAdd(html) {
+  const feed = document.getElementById('aisFeed');
+  if (!feed) return;
+  // Remove the "waiting" placeholder on first message
+  if (aisTotalMessages <= 1) feed.innerHTML = '';
+  const entry = document.createElement('div');
+  entry.className = 'ais-feed-entry';
+  entry.innerHTML = html;
+  feed.insertBefore(entry, feed.firstChild);
+  // Keep feed at max length
+  while (feed.children.length > AIS_MAX_FEED_ENTRIES) {
+    feed.removeChild(feed.lastChild);
+  }
+}
+
+// Calculate and update dashboard stats
+function aisUpdateStats() {
+  const now = Date.now();
+  const oneHourAgo = now - (60 * 60 * 1000);
+  const twentyFourHoursAgo = now - (24 * 60 * 60 * 1000);
+
+  let vessels1h = 0;
+  let vessels24h = 0;
+  let totalSpeed = 0;
+  let speedCount = 0;
+
+  aisVessels.forEach((vessel) => {
+    if (vessel.lastSeen >= twentyFourHoursAgo) {
+      vessels24h++;
+      if (vessel.lastSeen >= oneHourAgo) {
+        vessels1h++;
+      }
+    }
+    if (vessel.speed > 0 && vessel.speed < 50) {  // filter out 0 and bogus values
+      totalSpeed += vessel.speed;
+      speedCount++;
+    }
+  });
+
+  const avgSpeed = speedCount > 0 ? (totalSpeed / speedCount).toFixed(1) : '—';
+
+  // Update DOM
+  document.getElementById('aisVesselsNow').textContent = vessels1h;
+  document.getElementById('aisVessels24h').textContent = vessels24h;
+  document.getElementById('aisMessages').textContent = aisTotalMessages.toLocaleString();
+  document.getElementById('aisAvgSpeed').textContent = avgSpeed;
+
+  // Update rate bar — scale: 138 vessels/day = normal (100%)
+  // Convert 1h count to estimated daily rate
+  const estimatedDaily = vessels1h * 24;
+  const normalDaily = 138;
+  const pct = Math.min((estimatedDaily / normalDaily) * 100, 100);
+  const rateFill = document.getElementById('aisRateFill');
+  if (rateFill) rateFill.style.width = pct + '%';
+}
+
+// Prune vessels older than 24h to prevent memory bloat
+function aisPruneOldVessels() {
+  const cutoff = Date.now() - (24 * 60 * 60 * 1000);
+  aisVessels.forEach((vessel, mmsi) => {
+    if (vessel.lastSeen < cutoff) aisVessels.delete(mmsi);
+  });
+}
+
+// Set connection status in the UI
+function aisSetConnectionStatus(text, statusClass) {
+  const el = document.getElementById('aisConnectionStatus');
+  if (el) {
+    el.textContent = text;
+    el.className = 'status-text ' + (statusClass || '');
+  }
+  const dot = document.getElementById('aisLiveDot');
+  if (dot) {
+    dot.className = statusClass === 'connected' ? 'live-dot' : 'live-dot disconnected';
+  }
+}
+
+// Connect to the aisstream.io WebSocket
+function aisConnect() {
+  if (!AIS_ENABLED || AIS_API_KEY === "YOUR_AISSTREAM_API_KEY_HERE") {
+    aisSetConnectionStatus('AIS disabled — add your API key in the config section', '');
+    return;
+  }
+
+  aisSetConnectionStatus('Connecting to aisstream.io...', '');
+
+  try {
+    aisSocket = new WebSocket("wss://stream.aisstream.io/v0/stream");
+  } catch (err) {
+    aisSetConnectionStatus('WebSocket creation failed: ' + err.message, 'error');
+    return;
+  }
+
+  aisSocket.onopen = function() {
+    console.log("✅ AIS WebSocket connected");
+    aisSetConnectionStatus('Connected — streaming live AIS data', 'connected');
+
+    // Send subscription message with our bounding box
+    const subscriptionMessage = {
+      Apikey: AIS_API_KEY,
+      BoundingBoxes: [AIS_BOUNDING_BOX],
+      FilterMessageTypes: ["PositionReport"]
+    };
+    aisSocket.send(JSON.stringify(subscriptionMessage));
+  };
+
+  aisSocket.onmessage = function(event) {
+    try {
+      const msg = JSON.parse(event.data);
+
+      if (msg.MessageType === "PositionReport") {
+        aisTotalMessages++;
+        const report = msg.Message.PositionReport;
+        const meta = msg.MetaData || {};
+
+        const mmsi = String(report.UserID);
+        const lat = report.Latitude?.toFixed(4) || meta.latitude?.toFixed(4) || '—';
+        const lon = report.Longitude?.toFixed(4) || meta.longitude?.toFixed(4) || '—';
+        const speed = report.Sog ?? 0;  // Speed Over Ground in knots
+        const heading = report.TrueHeading ?? report.Cog ?? 0;
+        const navStatus = report.NavigationalStatus ?? 15;
+        const vesselName = (meta.ShipName || '').trim() || `MMSI ${mmsi}`;
+
+        // Update vessel record
+        aisVessels.set(mmsi, {
+          name: vesselName,
+          lat: parseFloat(lat),
+          lon: parseFloat(lon),
+          speed: speed,
+          heading: heading,
+          navStatus: navStatus,
+          lastSeen: Date.now()
+        });
+
+        // Add to live feed
+        const timeStr = aisTimeFormat(new Date());
+        const navStr = aisNavStatus(navStatus);
+        aisFeedAdd(`
+          <span class="vessel-name">${vesselName}</span>
+          <span>${lat}°N, ${lon}°E</span>
+          <span class="vessel-speed">${speed.toFixed(1)} kn · ${navStr}</span>
+          <span class="vessel-time">${timeStr}</span>
+        `);
+      }
+    } catch (err) {
+      console.warn("AIS message parse error:", err);
+    }
+  };
+
+  aisSocket.onerror = function(err) {
+    console.error("AIS WebSocket error:", err);
+    aisSetConnectionStatus('Connection error — will retry...', 'error');
+  };
+
+  aisSocket.onclose = function(event) {
+    console.log("AIS WebSocket closed:", event.code, event.reason);
+    aisSetConnectionStatus('Disconnected — reconnecting in 5s...', 'error');
+
+    // Auto-reconnect after delay
+    if (aisReconnectTimer) clearTimeout(aisReconnectTimer);
+    aisReconnectTimer = setTimeout(() => {
+      console.log("AIS: Attempting reconnect...");
+      aisConnect();
+    }, AIS_RECONNECT_DELAY);
+  };
+}
+
+// Start the stats update loop
+function aisStartStatsLoop() {
+  aisUpdateStats();
+  setInterval(() => {
+    aisUpdateStats();
+  }, AIS_STATS_INTERVAL);
+
+  // Prune old vessels every 5 minutes
+  setInterval(aisPruneOldVessels, 5 * 60 * 1000);
+}
+
+
+// ══════════════════════════════════════
 // INITIALIZE
 // ══════════════════════════════════════
 
@@ -861,10 +1263,11 @@ if (db) {
   console.log("⚠️ Firebase not configured — using localStorage fallback. Set FIREBASE_ENABLED = true after adding your config.");
   renderPoll(getLocalVotes());
 }
-</script>
 
-</body>
-</html>
+// Start AIS live tracking
+aisConnect();
+aisStartStatsLoop();
+</script>
 
 </body>
 </html>
